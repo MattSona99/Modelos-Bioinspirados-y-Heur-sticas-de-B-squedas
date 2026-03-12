@@ -83,43 +83,59 @@ def evaluar_ruta(ruta, caso_bicis, caso_capacidad, coordenadas, inicio=0, l_max=
         'entropia': calcular_entropia(bicis_actuales, caso_capacidad)
     }
     
-def graficar_historial(historial, nombre_caso, algoritmo, semilla):
+def graficar_historiales(datos_graficas, algoritmo):
     """
-    Dibuja la gráfica de evolución de la Función Objetivo, Kms y Entropía.
-    Usa un doble eje Y para manejar las diferentes escalas de los valores.
+    Recibe una lista de diccionarios con los historiales de los casos
+    y los dibuja uno al lado del otro.
     """
-    fig, ax1 = plt.subplots(figsize=(10, 6))
+    n_graficas = len(datos_graficas)
+    fig, axes = plt.subplots(1, n_graficas, figsize=(16, 5))
+    
+    if n_graficas == 1:
+        axes = [axes]
 
     color_fobj = 'tab:blue'
     color_ent = 'tab:green'
-    
-    ax1.set_xlabel('Iteraciones (Cambios de mejor solución)')
-    ax1.set_ylabel('F. Objetivo / Entropía', color='black')
-    
-    line1, = ax1.plot(historial['iteracion'], historial['fobj'], 
-                      color=color_fobj, marker='o', markersize=4, 
-                      label='Mejor F. Objetivo', linewidth=2)
-    
-    line2, = ax1.plot(historial['iteracion'], historial['entropia'], 
-                      color=color_ent, linestyle='--', 
-                      label='Entropía', linewidth=2)
-    
-    ax1.tick_params(axis='y', labelcolor='black')
-
-    ax2 = ax1.twinx()  
     color_kms = 'tab:red'
-    ax2.set_ylabel('Kilómetros (Kms)', color=color_kms)  
-    
-    line3, = ax2.plot(historial['iteracion'], historial['kms'], 
-                      color=color_kms, linestyle=':', 
-                      label='Kms Recorridos', linewidth=2)
-    ax2.tick_params(axis='y', labelcolor=color_kms)
+
+    for i, dato in enumerate(datos_graficas):
+        ax1 = axes[i]
+        historial = dato['historial']
+        nombre_caso = dato['nombre_caso']
+        semilla = dato['semilla']
+
+        ax1.set_xlabel('Iteraciones')
+        if i == 0:
+            ax1.set_ylabel('F. Objetivo / Entropía', color='black')
+        
+        line1, = ax1.plot(historial['iteracion'], historial['fobj'], 
+                          color=color_fobj, marker='o', markersize=4, 
+                          label='Mejor F. Objetivo', linewidth=2)
+        
+        line2, = ax1.plot(historial['iteracion'], historial['entropia'], 
+                          color=color_ent, linestyle='--', 
+                          label='Entropía', linewidth=2)
+        
+        ax1.tick_params(axis='y', labelcolor='black')
+        
+        ax2 = ax1.twinx()  
+        
+        if i == n_graficas - 1:
+            ax2.set_ylabel('Kilómetros (Kms)', color=color_kms)  
+        
+        line3, = ax2.plot(historial['iteracion'], historial['kms'], 
+                          color=color_kms, linestyle=':', 
+                          label='Kms Recorridos', linewidth=2)
+        ax2.tick_params(axis='y', labelcolor=color_kms)
+
+        ax1.set_title(f'{nombre_caso} (Semilla: {semilla})')
+        ax1.grid(True, alpha=0.3)
 
     lines = [line1, line2, line3]
     labels = [l.get_label() for l in lines]
-    ax1.legend(lines, labels, loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=3)
+    fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, -0.05), ncol=3)
 
-    plt.title(f'Evolución {algoritmo} - {nombre_caso} (Semilla: {semilla})')
-    plt.grid(True, alpha=0.3)
+    fig.suptitle(f'Evolución de {algoritmo}', fontsize=16, y=1.05)
+
     plt.tight_layout()
     plt.show()
