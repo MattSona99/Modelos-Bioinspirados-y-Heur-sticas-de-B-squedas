@@ -8,11 +8,17 @@ def ejecutar_experimento(
     casos, semillas, tolerancia,
     coordenadas, evaluar_ruta, **kwargs
     ):
+    """
+    Ejecuta un experimento de prueba para un algoritmo de optimización dado.
+    Compara los resultados obtenidos con diferentes funciones objetivo y semillas,
+    y presenta los resultados en una tabla resumen, además de graficar los
+    historiales de evolución para los casos no determinísticos.
+    """
     
     resultados_globales = {}
-    print(f"\n{'='*110}")
+    print(f"\n{'='*93}")
     print(f" EXPERIMENTACIÓN: {nombre_algoritmo.upper()}")
-    print(f"{'='*110}")
+    print(f"{'='*93}")
 
     datos_para_graficar = []
     filas_tabla = []

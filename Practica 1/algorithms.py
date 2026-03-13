@@ -1,5 +1,6 @@
 from utils import distancia_manhattan_km, generar_solucion_inicial_aleatoria, generar_vecino_swap
 import random
+import math
 
 # ----------------------------------------
 # 1. Algoritmo Greedy (Vecino Más Cercano)
@@ -256,7 +257,7 @@ def busqueda_local_primer_mejor(
             
             kms_vec = res_vecino['kms_recorridos']
             ent_vec = res_vecino['entropia']
-            fobj_vec = kms_vec / ent_vec if ent_vec > 0 else float('inf')
+            fobj_vec = funcion_objetivo(kms=kms_vec, entropia=ent_vec, **kwargs)
             
             # Si mejora la solución actual, se guarda como candidato a movimiento (hasta 3)
             if fobj_vec < fobj_actual:
@@ -290,4 +291,119 @@ def busqueda_local_primer_mejor(
         'ruta': ruta_actual, 'fobj': fobj_actual, 'kms': kms_actual, 'entropia': entropia_actual,
         'historial': historial, 'evaluaciones': evaluaciones, 'semilla': semilla
     }
+    
+# -------------------------------------
+# 5. Algoritmo de Enfriamiento Simulado
+# -------------------------------------
 
+def busqueda_enfriamiento_simulado(
+    funcion_objetivo,
+    estaciones_base,
+    coordenadas,
+    caso_bicis,
+    caso_capacidad,
+    evaluar_ruta,
+    semilla,
+    max_iteraciones=80,
+    max_vecinos=20,
+    mu=0.15,
+    phi=0.20,
+    **kwargs
+    ):
+    """
+    Algoritmo de Enfriamiento Simulado (Simulated Annealing).
+    Utiliza un esquema de enfriamiento de Cauchy y permite movimientos a peores
+    soluciones probabilísticamente para escapar de óptimos locales.
+    """
+    random.seed(semilla)
+    evaluaciones = 0
+    
+    # Generar solución inicial aleatoria
+    ruta_actual = generar_solucion_inicial_aleatoria(estaciones_base)
+    res = evaluar_ruta(ruta_actual, caso_bicis, caso_capacidad, coordenadas)
+    evaluaciones += 1
+    
+    kms_actual = res['kms_recorridos']
+    entropia_actual = res['entropia']
+    fobj_actual = funcion_objetivo(kms=kms_actual, entropia=entropia_actual, **kwargs)
+    
+    # Calcular Temperatura inicial (T0)
+    # T0 = (mu / -log(phi)) * C(Si)
+    # Se usa abs() para evitar problemas con log(0) o log de números negativos
+    T0 = (mu / -math.log(phi)) * abs(fobj_actual) if fobj_actual != float('inf') else 100.0
+    T = T0
+    
+    # Variables para rastrear la mejor solución encontrada
+    mejor_ruta = list(ruta_actual)
+    mejor_fobj = fobj_actual
+    mejor_kms = kms_actual
+    mejor_entropia = entropia_actual
+    
+    # Historial
+    n_cambios = 0
+    historial = {
+        'iteracion': [n_cambios],
+        'fobj': [fobj_actual],
+        'kms': [kms_actual],
+        'entropia': [entropia_actual]
+    }
+    
+    n = len(ruta_actual)
+    
+    # Bucle Externo: Condición de parada (Enfriamientos)
+    for k in range(max_iteraciones):
+        
+        # Bucle Interno: Condición L(T) (Generar y evaluar vecinos)
+        for v in range(max_vecinos):
+            i = random.randint(1, n - 2)
+            j = random.randint(i + 1, n - 1)
+            
+            vecino = generar_vecino_swap(ruta_actual, i, j)
+            res_vecino = evaluar_ruta(vecino, caso_bicis, caso_capacidad, coordenadas)
+            evaluaciones += 1
+            
+            kms_vec = res_vecino['kms_recorridos']
+            ent_vec = res_vecino['entropia']
+            fobj_vec = funcion_objetivo(kms=kms_vec, entropia=ent_vec, **kwargs)
+            
+            # Criterio de Aceptación
+            delta = fobj_vec - fobj_actual
+            aceptado = False
+            
+            if delta < 0:
+                aceptado = True # Mejor solución, se acepta siempre
+            else:
+                # Empeora: se acepta con una probabilidad de exp(-delta / T)
+                if T > 0:
+                    prob_aceptacion = math.exp(-delta / T)
+                    if random.random() < prob_aceptacion:
+                        aceptado = True
+                        
+            # Si el movimento es aceptado, se actualiza la solución actual
+            if aceptado:
+                ruta_actual = vecino
+                fobj_actual = fobj_vec
+                kms_actual = kms_vec
+                entropia_actual = ent_vec
+                
+                # Guardar en el historial la ruta actual
+                n_cambios += 1
+                historial['iteracion'].append(n_cambios)
+                historial['fobj'].append(fobj_actual)
+                historial['kms'].append(kms_actual)
+                historial['entropia'].append(entropia_actual)
+                
+                # Actualizar la mejor solución encontrada
+                if fobj_actual < mejor_fobj:
+                    mejor_fobj = fobj_actual
+                    mejor_ruta = list(ruta_actual)
+                    mejor_kms = kms_actual
+                    mejor_entropia = entropia_actual
+                
+        # Enfriamiento de la temperatura (Esquema de Cauchy)
+        T = T0 / (1 + (k + 1)) # Evitar división por cero en la primera iteración
+        
+    return {
+        'ruta': ruta_actual, 'fobj': fobj_actual, 'kms': kms_actual, 'entropia': entropia_actual,
+        'historial': historial, 'evaluaciones': evaluaciones, 'semilla': semilla
+    }

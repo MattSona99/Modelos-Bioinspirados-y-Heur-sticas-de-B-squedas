@@ -140,18 +140,16 @@ def graficar_historiales(datos_graficas, algoritmo):
     plt.tight_layout()
     plt.show()
     
-# -------------------
-# Funciones Objetivos
-# -------------------
+# ---------------------------------------------------------------------------------------
+# --------------------------------- Funciones Objetivos ---------------------------------
+# ---------------------------------------------------------------------------------------
 
 def fobj_ratio(kms, entropia, **kwargs):
     """Ratio simple: penaliza fuertemente la baja entropia."""
     return kms / entropia if entropia > 0 else float('inf')
 
 def fobj_suma_ponderada(kms, entropia, alpha=2.0, **kwargs):
-    """
-    Suma ponderada: combina ambos factores con un peso alpha para la entropía.
-    """
+    """Suma ponderada: combina ambos factores con un peso alpha para la entropía."""
     return kms - (alpha * entropia)
 
 def fobj_ratio_cuadratico(kms, entropia, **kwargs):
