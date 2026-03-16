@@ -1,4 +1,5 @@
 import numpy as np
+import time
 from utils import obtener_estaciones_a_visitar, graficar_historiales, FUNCIONES_OBJETIVO, fobj_ratio, cargar_coordenadas, evaluar_ruta
 from config import CASOS, SEMILLAS, TOLERANCIA
 
@@ -20,9 +21,9 @@ def ejecutar_experimento(
     coordenadas = cargar_coordenadas('coords.json')
     
     resultados_globales = {}
-    print(f"\n{'='*93}")
+    print(f"\n{'='*108}")
     print(f" EXPERIMENTACIÓN: {nombre_algoritmo.upper()}")
-    print(f"{'='*93}")
+    print(f"{'='*108}")
 
     datos_para_graficar = []
     filas_tabla = []
@@ -38,6 +39,7 @@ def ejecutar_experimento(
         # Variables para rastrear al Mejor absoluto de este caso (usando el Arbitro)
         mejor_res_absoluto = None
         evaluaciones_totales_lista = [] # Para la media de evals
+        tiempos_totales_lista = [] # Para la media de tiempos
         
         # Se itera sobre todas las funciones objetivo
         for f_obj in FUNCIONES_OBJETIVO:
@@ -46,6 +48,7 @@ def ejecutar_experimento(
             
             # Para cada función, se itera sobre todas las semillas
             for sem in semillas_a_usar:
+                start_time = time.perf_counter()
                 res = funcion_algoritmo(
                     estaciones_base=est_base, coordenadas=coordenadas, 
                     caso_bicis=bicis, caso_capacidad=capacidad, 
@@ -55,6 +58,10 @@ def ejecutar_experimento(
                     **kwargs
                 )
                 
+                end_time = time.perf_counter()
+                time_elapsed = end_time - start_time
+                tiempos_totales_lista.append(time_elapsed)
+
                 evals_por_fobj.append(res['evaluaciones'])
                 
                 # Se compara internamente usando el valor bruto que devuelve la función actual
@@ -73,6 +80,7 @@ def ejecutar_experimento(
 
         # Estadísticas finales
         ev_media = np.mean(evaluaciones_totales_lista)
+        t_medio = np.mean(tiempos_totales_lista)
         ev_mejor = mejor_res_absoluto['evaluaciones']
 
         resultados_globales[nombre_caso] = mejor_res_absoluto
@@ -81,7 +89,7 @@ def ejecutar_experimento(
         nombre_fobj_corta = mejor_res_absoluto['nombre_fobj'].replace('fobj_', '')[:10]
         
         # Fila de la tabla
-        fila = f"| {nombre_caso:<6} | {mejor_res_absoluto['score_universal']:>11.4f} | {mejor_res_absoluto['kms']:>7.2f} | {mejor_res_absoluto['entropia']:>8.4f} | {ev_media:>8.1f} | {ev_mejor:>9} | {semilla_str:>7} | {nombre_fobj_corta:<10} |"
+        fila = f"| {nombre_caso:<6} | {mejor_res_absoluto['score_universal']:>11.4f} | {mejor_res_absoluto['kms']:>7.2f} | {mejor_res_absoluto['entropia']:>8.4f} | {ev_media:>8.1f} | {ev_mejor:>9} | {t_medio:>12.4f} | {semilla_str:>7} | {nombre_fobj_corta:<10} |"
         filas_tabla.append(fila)
         
         if 'parametros_extra' in mejor_res_absoluto:
@@ -98,7 +106,7 @@ def ejecutar_experimento(
             })
     
     # Imprimir tabla
-    encabezado = f"| Caso   | Score (Ratio)| Kms     | Entropía | Ev. Media| Ev. Mejor | Semilla | Mejor FObj |"
+    encabezado = f"| Caso   | Score (Ratio)| Kms     | Entropía | Ev. Media| Ev. Mejor | T. Medio (s) | Semilla | Mejor FObj |"
     separador = "-" * len(encabezado)
     
     print(encabezado)
