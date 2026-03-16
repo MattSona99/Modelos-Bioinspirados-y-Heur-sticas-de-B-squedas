@@ -83,6 +83,68 @@ def evaluar_ruta(ruta, caso_bicis, caso_capacidad, coordenadas, inicio=0, l_max=
         'entropia': calcular_entropia(bicis_actuales, caso_capacidad)
     }
     
+def calibrar_mu_phi(ruta_base, fobj_base, coordenadas, caso_bicis, caso_capacidad,
+                    evaluar_ruta, funcion_objetivo, num_vecinos=100, **kwargs):
+    """Calibra los parámetros mu y phi para encontras los mejores parámetros
+    que logren aproximadamente un 20% de rechazo en la temperatura inicial T0."""
+    print("\nCalibrando parámetros mu y phi...")
+    print(f"Costo inicial Greedy C(Si): {fobj_base:.4f}")
+    
+    # Valores a probar para mu y phi (entre 0.1 y 0.3)
+    valores_mu = [0.1, 0.15, 0.2, 0.25, 0.3]
+    valores_phi = [0.1, 0.15, 0.2, 0.25, 0.3]
+    n = len(ruta_base)
+    deltas_vecinos = []
+    
+    # Pre-generar vecinos y calcular sus deltas reales
+    for _ in range(num_vecinos):
+        i = random.randint(1, n - 2)
+        j = random.randint(i + 1, n - 1)
+        vecino = generar_vecino_swap(ruta_base, i, j)
+        
+        res_vecino = evaluar_ruta(vecino, caso_bicis, caso_capacidad, coordenadas)
+        fobj_vecino = funcion_objetivo(kms=res_vecino['kms_recorridos'], entropia=res_vecino['entropia'], **kwargs)
+        delta_real = fobj_vecino - fobj_base
+        deltas_vecinos.append(delta_real)
+        
+    mejor_combinacion = None
+    mejor_diferencia = float('inf')
+    
+    print(f"| {'μ (mu)':<6} | {'Φ (phi)':<7} | {'T0 Inicial':<10} | {'% Rechazo':<10} | {'Dif. al 20%':<11} |")
+    print("-" * 63)
+    
+    # Experimentar con todas las combinaciones de mu y phi
+    for mu in valores_mu:
+        for phi in valores_phi:
+            T0 = (mu / -math.log(phi)) * abs(fobj_base) if fobj_base != float('inf') else 100.0
+            
+            rechazados = 0
+            for delta in deltas_vecinos:
+                if delta < 0:
+                    pass # Siempre se acepta una mejora
+                else:
+                    # Se acepta con probabilidad exp(-delta / T0)
+                    prob_aceptacion = math.exp(-delta / T0) if T0 > 0 else 0
+                    if random.random() >= prob_aceptacion:
+                        rechazados += 1
+                        
+            porcentaje_rechazo = (rechazados / num_vecinos) * 100
+            diferencia = abs(porcentaje_rechazo - 20)
+            
+            
+            print(f"| {mu:<6.2f} | {phi:<7.2f} | {T0:<10.4f} | {porcentaje_rechazo:>8.1f}% | {diferencia:>10.1f}% |")
+            
+            # Guardar la combinación que más se acerca al 20% de rechazo
+            if diferencia < mejor_diferencia:
+                mejor_diferencia = diferencia
+                mejor_combinacion = {'mu': mu, 'phi': phi, 'T0': T0, 'rechazo': porcentaje_rechazo}
+                
+    print("-" * 63)
+    print(f">> PARÁMETROS ÓPTIMOS ENCONTRADOS: μ = {mejor_combinacion['mu']} y Φ = {mejor_combinacion['phi']}")
+    print(f">> Generan un rechazo del {mejor_combinacion['rechazo']}% (T0 = {mejor_combinacion['T0']:.4f})")
+    
+    return mejor_combinacion['mu'], mejor_combinacion['phi']
+    
 def graficar_historiales(datos_graficas, algoritmo):
     """
     Recibe una lista de diccionarios con los historiales de los casos

@@ -22,10 +22,12 @@ def ejecutar_experimento(
 
     datos_para_graficar = []
     filas_tabla = []
+    parametros_extra_lista = []
 
     for nombre_caso, datos in casos.items():
         bicis, capacidad = datos['bicis'], datos['capacidad']
         est_base = obtener_estaciones_a_visitar(bicis, capacidad, tolerancia)
+
 
         semillas_a_usar = [None] if is_deterministic else semillas
 
@@ -45,6 +47,7 @@ def ejecutar_experimento(
                     caso_bicis=bicis, caso_capacidad=capacidad, 
                     evaluar_ruta=evaluar_ruta, semilla=sem, 
                     funcion_objetivo=f_obj,
+                    casos=casos,
                     **kwargs
                 )
                 
@@ -76,6 +79,9 @@ def ejecutar_experimento(
         # Fila de la tabla
         fila = f"| {nombre_caso:<6} | {mejor_res_absoluto['score_universal']:>11.4f} | {mejor_res_absoluto['kms']:>7.2f} | {mejor_res_absoluto['entropia']:>8.4f} | {ev_media:>8.1f} | {ev_mejor:>9} | {semilla_str:>7} | {nombre_fobj_corta:<10} |"
         filas_tabla.append(fila)
+        
+        if 'parametros_extra' in mejor_res_absoluto:
+            parametros_extra_lista.append(f" - {nombre_caso}: {mejor_res_absoluto['parametros_extra']}")
                 
         if not is_deterministic and 'historial' in mejor_res_absoluto:
             historial_estandarizado = mejor_res_absoluto['historial']
@@ -96,6 +102,11 @@ def ejecutar_experimento(
     for fila in filas_tabla:
         print(fila)
     print(separador)
+    
+    if parametros_extra_lista:
+        print("\n --- Parámetros Específicos del Algoritmo ---")
+        for info in parametros_extra_lista:
+            print(info)
 
     if not is_deterministic and datos_para_graficar:
         graficar_historiales(datos_para_graficar, nombre_algoritmo)

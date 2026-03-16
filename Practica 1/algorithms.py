@@ -1,4 +1,4 @@
-from utils import distancia_manhattan_km, generar_solucion_inicial_aleatoria, generar_vecino_swap
+from utils import calibrar_mu_phi, distancia_manhattan_km, fobj_ratio, generar_solucion_inicial_aleatoria, generar_vecino_swap
 import random
 import math
 
@@ -296,6 +296,8 @@ def busqueda_local_primer_mejor(
 # 5. Algoritmo de Enfriamiento Simulado
 # -------------------------------------
 
+CACHE_CALIBRACION = {}
+
 def busqueda_enfriamiento_simulado(
     funcion_objetivo,
     estaciones_base,
@@ -306,8 +308,6 @@ def busqueda_enfriamiento_simulado(
     semilla,
     max_iteraciones=80,
     max_vecinos=20,
-    mu=0.15,
-    phi=0.20,
     **kwargs
     ):
     """
@@ -315,95 +315,136 @@ def busqueda_enfriamiento_simulado(
     Utiliza un esquema de enfriamiento de Cauchy y permite movimientos a peores
     soluciones probabilísticamente para escapar de óptimos locales.
     """
-    random.seed(semilla)
-    evaluaciones = 0
+    # Ejecutar la calibración de mu y phi óptimos
+    res_greedy = kwargs.get('res_greedy')
+    casos = kwargs.get('casos')
+    nombre_caso = 'Caso 1'
     
-    # Generar solución inicial aleatoria
-    ruta_actual = generar_solucion_inicial_aleatoria(estaciones_base)
-    res = evaluar_ruta(ruta_actual, caso_bicis, caso_capacidad, coordenadas)
-    evaluaciones += 1
+    if nombre_caso not in CACHE_CALIBRACION:
+        mejor_mu, mejor_phi = calibrar_mu_phi(
+            ruta_base=res_greedy[nombre_caso]['ruta'],
+            fobj_base=res_greedy[nombre_caso]['fobj'],
+            coordenadas=coordenadas,
+            caso_bicis=casos[nombre_caso]['bicis'],
+            caso_capacidad=casos[nombre_caso]['capacidad'],
+            evaluar_ruta=evaluar_ruta,
+            funcion_objetivo=fobj_ratio,
+            num_vecinos=100
+        )
+        CACHE_CALIBRACION[nombre_caso] = (mejor_mu, mejor_phi)
+    else:
+        mejor_mu, mejor_phi = CACHE_CALIBRACION[nombre_caso]
     
-    kms_actual = res['kms_recorridos']
-    entropia_actual = res['entropia']
-    fobj_actual = funcion_objetivo(kms=kms_actual, entropia=entropia_actual, **kwargs)
+    # Entorno dinámico basado en max_vecinos
+    entorno = [max_vecinos -5, max_vecinos, max_vecinos + 5]
     
-    # Calcular Temperatura inicial (T0)
-    # T0 = (mu / -log(phi)) * C(Si)
-    # Se usa abs() para evitar problemas con log(0) o log de números negativos
-    T0 = (mu / -math.log(phi)) * abs(fobj_actual) if fobj_actual != float('inf') else 100.0
-    T = T0
+    mejor_absoluto_ruta = None
+    mejor_absoluto_fobj = float('inf')
+    mejor_absoluto_kms = 0
+    mejor_absoluto_entropia = 0
+    mejor_absoluto_historial = None
+    mejor_absoluto_entorno = max_vecinos
+    evaluaciones_totales = 0
     
-    # Variables para rastrear la mejor solución encontrada
-    mejor_ruta = list(ruta_actual)
-    mejor_fobj = fobj_actual
-    mejor_kms = kms_actual
-    mejor_entropia = entropia_actual
-    
-    # Historial
-    n_cambios = 0
-    historial = {
-        'iteracion': [n_cambios],
-        'fobj': [fobj_actual],
-        'kms': [kms_actual],
-        'entropia': [entropia_actual]
-    }
-    
-    n = len(ruta_actual)
-    
-    # Bucle Externo: Condición de parada (Enfriamientos)
-    for k in range(max_iteraciones):
+    # Bucle principal de iteraciones para L(T)
+    for vec in entorno:
+        random.seed(semilla)
+        evaluaciones_run = 0
         
-        # Bucle Interno: Condición L(T) (Generar y evaluar vecinos)
-        for v in range(max_vecinos):
-            i = random.randint(1, n - 2)
-            j = random.randint(i + 1, n - 1)
-            
-            vecino = generar_vecino_swap(ruta_actual, i, j)
-            res_vecino = evaluar_ruta(vecino, caso_bicis, caso_capacidad, coordenadas)
-            evaluaciones += 1
-            
-            kms_vec = res_vecino['kms_recorridos']
-            ent_vec = res_vecino['entropia']
-            fobj_vec = funcion_objetivo(kms=kms_vec, entropia=ent_vec, **kwargs)
-            
-            # Criterio de Aceptación
-            delta = fobj_vec - fobj_actual
-            aceptado = False
-            
-            if delta < 0:
-                aceptado = True # Mejor solución, se acepta siempre
-            else:
-                # Empeora: se acepta con una probabilidad de exp(-delta / T)
-                if T > 0:
-                    prob_aceptacion = math.exp(-delta / T)
-                    if random.random() < prob_aceptacion:
-                        aceptado = True
-                        
-            # Si el movimento es aceptado, se actualiza la solución actual
-            if aceptado:
-                ruta_actual = vecino
-                fobj_actual = fobj_vec
-                kms_actual = kms_vec
-                entropia_actual = ent_vec
-                
-                # Guardar en el historial la ruta actual
-                n_cambios += 1
-                historial['iteracion'].append(n_cambios)
-                historial['fobj'].append(fobj_actual)
-                historial['kms'].append(kms_actual)
-                historial['entropia'].append(entropia_actual)
-                
-                # Actualizar la mejor solución encontrada
-                if fobj_actual < mejor_fobj:
-                    mejor_fobj = fobj_actual
-                    mejor_ruta = list(ruta_actual)
-                    mejor_kms = kms_actual
-                    mejor_entropia = entropia_actual
-                
-        # Enfriamiento de la temperatura (Esquema de Cauchy)
-        T = T0 / (1 + (k + 1)) # Evitar división por cero en la primera iteración
+        # Generar solución inicial aleatoria
+        ruta_actual = generar_solucion_inicial_aleatoria(estaciones_base)
+        res = evaluar_ruta(ruta_actual, caso_bicis, caso_capacidad, coordenadas)
+        evaluaciones_run += 1
         
+        kms_actual = res['kms_recorridos']
+        entropia_actual = res['entropia']
+        fobj_actual = funcion_objetivo(kms=kms_actual, entropia=entropia_actual, **kwargs)
+        
+        T0 = (mejor_mu / -math.log(mejor_phi)) * fobj_actual if fobj_actual != float('inf') else 100.0
+        T = T0
+        
+        # Variables para el historial de esta ejecución
+        mejor_run_ruta = list(ruta_actual)
+        mejor_run_fobj = fobj_actual
+        mejor_run_kms = kms_actual
+        mejor_run_entropia = entropia_actual
+        
+        n_cambios = 0
+        historial = {
+            'iteracion': [n_cambios], 'fobj': [fobj_actual],
+            'kms': [kms_actual], 'entropia': [entropia_actual]
+        }
+        
+        n = len(ruta_actual)
+        
+        # Bucle Externo: Condición de parada
+        for k in range(max_iteraciones):
+            
+            # Bucle Interno: Condición L(T) dinámico
+            for v in range(vec):
+                i = random.randint(1, n - 2)
+                j = random.randint(i + 1, n - 1)
+                
+                vecino = generar_vecino_swap(ruta_actual, i, j)
+                res_vecino = evaluar_ruta(vecino, caso_bicis, caso_capacidad, coordenadas)
+                evaluaciones_run += 1
+                
+                kms_vec = res_vecino['kms_recorridos']
+                ent_vec = res_vecino['entropia']
+                fobj_vec = funcion_objetivo(kms=kms_vec, entropia=ent_vec, **kwargs)
+                
+                delta = fobj_vec - fobj_actual
+                aceptado = False
+                
+                if delta < 0:
+                    aceptado = True
+                else:
+                    if T > 0:
+                        prob_aceptacion = math.exp(-delta / T)
+                        if random.random() < prob_aceptacion:
+                            aceptado = True
+                            
+                if aceptado:
+                    ruta_actual = vecino
+                    fobj_actual = fobj_vec
+                    kms_actual = kms_vec
+                    entropia_actual = ent_vec
+                    
+                    n_cambios += 1
+                    historial['iteracion'].append(n_cambios)
+                    historial['fobj'].append(fobj_actual)
+                    historial['kms'].append(kms_actual)
+                    historial['entropia'].append(entropia_actual)
+                    
+                    if fobj_actual < mejor_run_fobj:
+                        mejor_run_fobj = fobj_actual
+                        mejor_run_ruta = list(ruta_actual)
+                        mejor_run_kms = kms_actual
+                        mejor_run_entropia = entropia_actual
+            
+            T = T0 / (1 + (k + 1))
+            
+        evaluaciones_totales += evaluaciones_run
+        
+        # Evaluar si esta configuración de L(T) batió el récord absoluto
+        if mejor_run_fobj < mejor_absoluto_fobj:
+            mejor_absoluto_fobj = mejor_run_fobj
+            mejor_absoluto_ruta = mejor_run_ruta
+            mejor_absoluto_kms = mejor_run_kms
+            mejor_absoluto_entropia = mejor_run_entropia
+            mejor_absoluto_historial = historial
+            mejor_absoluto_entorno = vec
+            
+    # Formateo de parámetros personalizados para el log
+    info_parametros = f"Mejor L(T) = {mejor_absoluto_entorno} | μ = {mejor_mu} | φ = {mejor_phi}"
+            
     return {
-        'ruta': ruta_actual, 'fobj': fobj_actual, 'kms': kms_actual, 'entropia': entropia_actual,
-        'historial': historial, 'evaluaciones': evaluaciones, 'semilla': semilla
+        'ruta': mejor_absoluto_ruta, 
+        'fobj': mejor_absoluto_fobj, 
+        'kms': mejor_absoluto_kms, 
+        'entropia': mejor_absoluto_entropia,
+        'historial': mejor_absoluto_historial, 
+        'evaluaciones': evaluaciones_totales, 
+        'semilla': semilla,
+        'parametros_extra': info_parametros
     }
