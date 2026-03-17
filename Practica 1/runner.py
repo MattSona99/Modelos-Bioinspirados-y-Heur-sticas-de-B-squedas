@@ -1,7 +1,8 @@
 import numpy as np
 import time
-from utils import obtener_estaciones_a_visitar, graficar_historiales, FUNCIONES_OBJETIVO, fobj_ratio, cargar_coordenadas, evaluar_ruta
+from utils import obtener_estaciones_a_visitar, graficar_historiales, FUNCIONES_OBJETIVO, fobj_ratio, cargar_coordenadas, evaluar_ruta, dibujar_mapa
 from config import CASOS, SEMILLAS, TOLERANCIA
+from IPython.display import display
 
 
 def ejecutar_experimento(
@@ -16,6 +17,7 @@ def ejecutar_experimento(
     Compara los resultados obtenidos con diferentes funciones objetivo y semillas,
     y presenta los resultados en una tabla resumen, además de graficar los
     historiales de evolución para los casos no determinísticos.
+    Genera automáticamente mapas interactivos de la mejor solución por caso.
     """
     # Cargar datos base
     coordenadas = cargar_coordenadas('coords.json')
@@ -84,6 +86,22 @@ def ejecutar_experimento(
         ev_mejor = mejor_res_absoluto['evaluaciones']
 
         resultados_globales[nombre_caso] = mejor_res_absoluto
+        
+        evaluacion_final = evaluar_ruta(
+            ruta=mejor_res_absoluto['ruta'],
+            caso_bicis=bicis,
+            caso_capacidad=capacidad,
+            coordenadas=coordenadas
+        )
+        
+        mapa_generado = dibujar_mapa(
+            coordenadas=coordenadas,
+            caso_capacidad=capacidad,
+            inventario_final=evaluacion_final['inventario_final'],
+            movimientos_mapa=evaluacion_final['movimientos_mapa']
+        )
+        
+        display(mapa_generado)
 
         semilla_str = str(mejor_res_absoluto['semilla']) if mejor_res_absoluto['semilla'] is not None else 'N/A'
         nombre_fobj_corta = mejor_res_absoluto['nombre_fobj'].replace('fobj_', '')[:10]

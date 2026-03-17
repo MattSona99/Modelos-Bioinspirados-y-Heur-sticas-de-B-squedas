@@ -1,4 +1,4 @@
-from utils import calibrar_mu_phi, distancia_manhattan_km, fobj_ratio, generar_solucion_inicial_aleatoria, generar_vecino_swap
+from utils import calibrar_mu_phi, distancia_manhattan_km, fobj_ratio, generar_solucion_inicial_aleatoria, generar_vecino_swap, generar_greedy_probabilistico
 import random
 import math
 
@@ -311,7 +311,7 @@ def busqueda_enfriamiento_simulado(
     **kwargs
     ):
     """
-    Algoritmo de Enfriamiento Simulado (Simulated Annealing).
+    Algoritmo de Enfriamiento Simulado.
     Utiliza un esquema de enfriamiento de Cauchy y permite movimientos a peores
     soluciones probabilísticamente para escapar de óptimos locales.
     """
@@ -447,4 +447,170 @@ def busqueda_enfriamiento_simulado(
         'evaluaciones': evaluaciones_totales, 
         'semilla': semilla,
         'parametros_extra': info_parametros
+    }
+    
+# -----------------------------
+# 6. Algoritmo de Búsqueda Tabú
+# -----------------------------
+
+def busqueda_tabu(
+    funcion_objetivo,
+    estaciones_base,
+    coordenadas,
+    caso_bicis,
+    caso_capacidad,
+    evaluar_ruta,
+    semilla,
+    max_iteraciones=150,
+    vecinos_por_iteracion=20,
+    **kwargs
+    ):
+    """
+    Algoritmo de Búsqueda Tabú.
+    Incorpora memoria a corto plazo (Lista Tabú) y a largo plazo (Matriz de Frecuencias),
+    junto con estrategias de reinicialización probabilística.
+    """
+    random.seed(semilla)
+    evaluaciones = 0
+    
+    # Memoria a Largo Plazo: Matriz Frecuencia[N][N]
+    N = len(coordenadas)
+    frecuencia = [[0] * N for _ in range(N)]
+    
+    # Solución Inicial
+    ruta_actual = generar_solucion_inicial_aleatoria(estaciones_base)
+    res = evaluar_ruta(ruta_actual, caso_bicis, caso_capacidad, coordenadas)
+    evaluaciones += 1
+    
+    fobj_actual = funcion_objetivo(kms=res['kms_recorridos'], entropia=res['entropia'], **kwargs)
+    
+    mejor_absoluto_ruta = list(ruta_actual)
+    mejor_absoluto_fobj = fobj_actual
+    mejor_absoluto_kms = res['kms_recorridos']
+    mejor_absoluto_entropia = res['entropia']
+    
+    # Memoria a Corto Plazo: Lista Tabú
+    lista_tabu = []
+    tamano_tabu = 4
+    
+    n_cambios = 0
+    historial = {
+        'iteracion': [n_cambios], 'fobj': [fobj_actual],
+        'kms': [mejor_absoluto_kms], 'entropia': [mejor_absoluto_entropia]
+    }
+    
+    n_estaciones = len(ruta_actual)
+    
+    for iteracion in range(1, max_iteraciones +1):
+        mejores_candidatos = []
+        
+        # Estrategia de selección: examinar 20 vecinos
+        for _ in range(vecinos_por_iteracion):
+            i = random.randint(1, n_estaciones - 2)
+            j = random.randint(i + 1, n_estaciones - 1)
+            
+            vecino = generar_vecino_swap(ruta_actual, i, j)
+            res_vecino = evaluar_ruta(vecino, caso_bicis, caso_capacidad, coordenadas)
+            evaluaciones += 1
+            
+            kms_vec = res_vecino['kms_recorridos']
+            ent_vec = res_vecino['entropia']
+            fobj_vec = funcion_objetivo(kms=kms_vec, entropia=ent_vec, **kwargs)
+            
+            mejores_candidatos.append({
+                'ruta': vecino,
+                'fobj': fobj_vec,
+                'kms': kms_vec,
+                'entropia': ent_vec,
+                'movimiento': (i, j)
+            })
+            
+        # Ordenar candidatos de mejor a peor
+        mejores_candidatos.sort(key=lambda x: x['fobj'])
+        
+        movimiento_aceptado = None
+        
+        # Buscar el primer candidato no tabú o que cumpla el criterio de aspiración
+        for candidato in mejores_candidatos:
+            mov = candidato['movimiento']
+            
+            # Es tabú si alguno de los indices intercambiados está bloqueado
+            es_tabu = any(mov[0] in tabu_mov or mov[1] in tabu_mov for tabu_mov in lista_tabu)
+            
+            # Criterio de Aspiración: mejora el récord absoluto
+            criterio_aspiracion = candidato['fobj'] < mejor_absoluto_fobj
+            
+            if not es_tabu or criterio_aspiracion:
+                movimiento_aceptado = candidato
+                break
+        
+        # Si no se ha aceptado ninguno de los candidatos, se acepta el primero
+        if not movimiento_aceptado:
+            movimiento_aceptado = mejores_candidatos[0]
+            
+        ruta_actual = movimiento_aceptado['ruta']
+        fobj_actual = movimiento_aceptado['fobj']
+        
+        # Matriz de Frecuencias
+        ruta_completa = [0] + ruta_actual + [0]
+        for idx in range(len(ruta_completa) - 1):
+            origen = ruta_completa[idx]
+            destino = ruta_completa[idx + 1]
+            frecuencia[origen][destino] += 1
+            
+        # Memoria a Corto Plazo: Lista Tabú
+        lista_tabu.append(movimiento_aceptado['movimiento'])
+        if len(lista_tabu) > tamano_tabu:
+            lista_tabu.pop(0) # FIFO
+            
+        # Récord Global
+        if fobj_actual < mejor_absoluto_fobj:
+            mejor_absoluto_fobj = fobj_actual
+            mejor_absoluto_ruta = list(ruta_actual)
+            mejor_absoluto_kms = movimiento_aceptado['kms']
+            mejor_absoluto_entropia = movimiento_aceptado['entropia']
+            
+        n_cambios += 1
+        historial['iteracion'].append(n_cambios)
+        historial['fobj'].append(fobj_actual) # En tabú se suele graficar la actual, que sube y baja
+        historial['kms'].append(movimiento_aceptado['kms'])
+        historial['entropia'].append(movimiento_aceptado['entropia'])
+        
+        # Reinicializzaciones: cada max_iteraciones / 4
+        if iteracion % (max_iteraciones // 4) == 0 and iteracion < max_iteraciones:
+            prob = random.random()
+            
+            if prob < 0.25:
+                # 25% Aleatoria
+                ruta_actual = generar_solucion_inicial_aleatoria(estaciones_base)
+            elif prob < 0.75:
+                # 50% Greedy Probabilistico basado en Memoria a Largo Plazo
+                ruta_actual = generar_greedy_probabilistico(frecuencia, estaciones_base)
+            else:
+                # 25% Explotación (Mejor Solución Obtenida)
+                ruta_actual = list(mejor_absoluto_ruta)
+                
+            # Evaluar la nueva ruta base
+            res_reinicializacion = evaluar_ruta(ruta_actual, caso_bicis, caso_capacidad, coordenadas)
+            evaluaciones += 1
+            fobj_actual = funcion_objetivo(kms=res_reinicializacion['kms_recorridos'], entropia=res_reinicializacion['entropia'], **kwargs)
+            
+            # Vaciar lista tabú al reiniciar
+            lista_tabu = []
+            
+            # Alterar tamaño de la lista tabú (+50% o -50%)
+            if random.random() < 0.5:
+                tamano_tabu = max(1, int(tamano_tabu * 1.5))
+            else:
+                tamano_tabu = max(1, int(tamano_tabu * 0.5))
+    
+    return {
+        'ruta': mejor_absoluto_ruta, 
+        'fobj': mejor_absoluto_fobj, 
+        'kms': mejor_absoluto_kms, 
+        'entropia': mejor_absoluto_entropia,
+        'historial': historial, 
+        'evaluaciones': evaluaciones, 
+        'n_cambios': n_cambios,
+        'semilla': semilla
     }

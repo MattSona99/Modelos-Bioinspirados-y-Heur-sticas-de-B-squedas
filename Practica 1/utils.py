@@ -2,6 +2,7 @@ import json
 import math
 import random
 import matplotlib.pyplot as plt
+import folium
 
 def cargar_coordenadas(ruta_archivio):
     """Carga las coordenadas de las estaciones desde un archivo JSON."""
@@ -52,35 +53,54 @@ def evaluar_ruta(ruta, caso_bicis, caso_capacidad, coordenadas, inicio=0, l_max=
     distancia_total = 0.0
     camion_bicis = bicis_ini
     estacion_actual = inicio
+    movimientos_mapa = []
     
     def procesar_intercambio(id_est):
         """Procesa el intercambio de bicicletas en una estación dada."""
         nonlocal camion_bicis
         objetivo = int(caso_capacidad[id_est] * 0.5)
+        action = 'nada'
+        cantidad = 0
+        
         if bicis_actuales[id_est] > objetivo:
             recogidas = min(bicis_actuales[id_est] - objetivo, l_max - camion_bicis)
             bicis_actuales[id_est] -= recogidas
             camion_bicis += recogidas
+            accion = 'coger'
+            cantidad = recogidas
+            
         elif bicis_actuales[id_est] < objetivo:
             dejadas = min(objetivo - bicis_actuales[id_est], camion_bicis)
             bicis_actuales[id_est] += dejadas
             camion_bicis -= dejadas
+            accion = 'dejar'
+            cantidad = dejadas
+            
+        return accion, cantidad
             
     procesar_intercambio(inicio)
+    
     for proxima in ruta:
         lat1, lon1 = coordenadas[estacion_actual]['lat'], coordenadas[estacion_actual]['lon']
         lat2, lon2 = coordenadas[proxima]['lat'], coordenadas[proxima]['lon']
         distancia_total += distancia_manhattan_km(lat1, lon1, lat2, lon2)
+        
+        accion, cantidad = procesar_intercambio(proxima)
+        movimientos_mapa.append((estacion_actual, proxima, accion, cantidad))
+        
         estacion_actual = proxima
-        procesar_intercambio(estacion_actual)
         
     lat1, lon1 = coordenadas[estacion_actual]['lat'], coordenadas[estacion_actual]['lon']
     lat2, lon2 = coordenadas[inicio]['lat'], coordenadas[inicio]['lon']
     distancia_total += distancia_manhattan_km(lat1, lon1, lat2, lon2)
     
+    movimientos_mapa.append((estacion_actual, inicio, 'nada', 0))
+    
     return {
         'kms_recorridos': distancia_total,
-        'entropia': calcular_entropia(bicis_actuales, caso_capacidad)
+        'entropia': calcular_entropia(bicis_actuales, caso_capacidad),
+        'inventario_final': bicis_actuales,
+        'movimientos_mapa': movimientos_mapa
     }
     
 def calibrar_mu_phi(ruta_base, fobj_base, coordenadas, caso_bicis, caso_capacidad,
@@ -144,6 +164,45 @@ def calibrar_mu_phi(ruta_base, fobj_base, coordenadas, caso_bicis, caso_capacida
     print(f">> Generan un rechazo del {mejor_combinacion['rechazo']}% (T0 = {mejor_combinacion['T0']:.4f})")
     
     return mejor_combinacion['mu'], mejor_combinacion['phi']
+
+def generar_greedy_probabilistico(frecuencia, estaciones_base):
+    """
+    Construye una solución greedy probabilística basándose en la memoria a largo plazo (matriz de frecuencia).
+    Prioriza las aristas (caminos entre dos estaciones) menos visitadas.
+    """
+    ruta_greedy = []
+    estaciones_pendientes = list(estaciones_base)
+    estacion_actual = 0
+    
+    while estaciones_pendientes:
+        inversas = []
+        
+        # Calcular las inversas de los valores acumulados
+        for candidata in estaciones_pendientes:
+            freq = frecuencia[estacion_actual][candidata]
+            # Si no se ha visitado nunca (freq == 0), se asume una probabilidad altísima (inversa grande)
+            inversa = 1.0 / freq if freq > 0 else 1000.0 
+            inversas.append(inversa)
+            
+        # Normalizar para tener valores entre 0 y 1
+        suma_inversas = sum(inversas)
+        probabilidades = [inv / suma_inversas for inv in inversas]
+        
+        numero = random.random()
+        suma = 0.0
+        estacion_elegida = estaciones_pendientes[-1] # Fallback por seguridad de decimales
+        
+        for i, candidata in enumerate(estaciones_pendientes):
+            suma += probabilidades[i]
+            if numero <= suma:
+                estacion_elegida = candidata
+                break
+                
+        ruta_greedy.append(estacion_elegida)
+        estaciones_pendientes.remove(estacion_elegida)
+        estacion_actual = estacion_elegida
+        
+    return ruta_greedy
     
 def graficar_historiales(datos_graficas, algoritmo):
     """
@@ -201,7 +260,77 @@ def graficar_historiales(datos_graficas, algoritmo):
 
     plt.tight_layout()
     plt.show()
+
+def dibujar_mapa(
+    coordenadas,
+    caso_capacidad,
+    inventario_final,
+    movimientos_mapa,
+    ):
+    """
+    Dibuja el mapa con las estaciones y los caminos recorridos.
+    """
     
+    mapa = folium.Map(location=[43.4647, -3.8044], zoom_start=14)
+    
+    # Dibujar el estado de las Estaciones (Círculos)
+    for i, coords in enumerate(coordenadas):
+        i = int(i) if isinstance(i, str) else i
+        lat, lon = coords['lat'], coords['lon']
+        cap_max = caso_capacidad[i]
+        bicis_actuales = inventario_final[i]
+        porcentaje_llenado = (bicis_actuales / cap_max) * 100 if cap_max > 0 else 0
+        
+        color_circulo = 'green'
+        radio = 5
+        
+        if porcentaje_llenado > 50:
+            color_circulo = 'blue'
+            diferencia = porcentaje_llenado - 50
+            radio = 5 + (diferencia * 0.2)
+        elif porcentaje_llenado < 50:
+            color_circulo = 'red'
+            diferencia = 50 - porcentaje_llenado
+            radio = 5 + (diferencia * 0.2)
+            
+        tooltip_texto = f"Estación {i}<br>Bicis: {bicis_actuales}/{cap_max} ({porcentaje_llenado:.1f}%)"
+        
+        folium.CircleMarker(
+            location=[lat, lon],
+            radius=radio,
+            popup=tooltip_texto,
+            color=color_circulo,
+            fill=True,
+            fill_color=color_circulo,
+            fill_opacity=0.7
+        ).add_to(mapa)
+
+    # Dibujar el Recorrido del Camión
+    for origen, destino, accion, cantidad in movimientos_mapa:
+        origen_idx = int(origen)
+        destino_idx = int(destino)
+        
+        lat_origen, lon_origen = coordenadas[origen_idx]['lat'], coordenadas[origen_idx]['lon']
+        lat_destino, lon_destino = coordenadas[destino_idx]['lat'], coordenadas[destino_idx]['lon']
+
+        color_linea = 'green'
+        if accion == 'coger':
+            color_linea = 'red'
+        elif accion == 'dejar':
+            color_linea = 'blue'
+            
+        texto_linea = f"De {origen} a {destino}<br>Acción: {accion} {cantidad} bicis"
+        
+        folium.PolyLine(
+            locations=[[lat_origen, lon_origen], [lat_destino, lon_destino]],
+            color=color_linea,
+            weight=3,
+            opacity=0.8,
+            popup=texto_linea
+        ).add_to(mapa)
+
+    return mapa
+
 # ---------------------------------------------------------------------------------------
 # --------------------------------- Funciones Objetivos ---------------------------------
 # ---------------------------------------------------------------------------------------
