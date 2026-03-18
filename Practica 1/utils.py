@@ -261,37 +261,87 @@ def graficar_historiales(datos_graficas, algoritmo):
     plt.tight_layout()
     plt.show()
 
-def dibujar_mapa(
-    coordenadas,
-    caso_capacidad,
-    inventario_final,
-    movimientos_mapa,
-    ):
+def dibujar_mapa_trayecto(coordenadas, movimientos_mapa):
     """
-    Dibuja el mapa con las estaciones y los caminos recorridos.
+    Genera la Mappa dl Trayecto del Camión.
+    Líneas de colores según la acción: Rojo (coger), Azul (dejar), Verde (ningún cambio).
+    Las estaciones no visitadas no intervienen en la ruta.
     """
-    
     mapa = folium.Map(location=[43.4647, -3.8044], zoom_start=14)
     
-    # Dibujar el estado de las Estaciones (Círculos)
+    # Dibujar todas las estaciones como puntos base pequeños (gris claro) para contexto geográfico
     for i, coords in enumerate(coordenadas):
-        i = int(i) if isinstance(i, str) else i
+        folium.CircleMarker(
+            location=[coords['lat'], coords['lon']],
+            radius=3, color='gray', fill=True, popup=f"Estación {i}"
+        ).add_to(mapa)
+
+    # Dibujar el Recorrido del Camión y pintar el "nodo" según la acción en ese instante
+    for origen, destino, accion, cantidad in movimientos_mapa:
+        origen_idx = int(origen)
+        destino_idx = int(destino)
+        
+        lat_origen, lon_origen = coordenadas[origen_idx]['lat'], coordenadas[origen_idx]['lon']
+        lat_destino, lon_destino = coordenadas[destino_idx]['lat'], coordenadas[destino_idx]['lon']
+
+        # Determinar el color de la línea y del nodo destino de la ruta
+        color_accion = 'green' # verde para ningún cambio
+        if accion == 'coger':
+            color_accion = 'red' # rojo para coger
+        elif accion == 'dejar':
+            color_accion = 'blue' # azul para dejar
+            
+        texto_linea = f"De {origen_idx} a {destino_idx}<br>Acción: {accion} {cantidad} bicis"
+        
+        # Dibujar la línea de la ruta
+        folium.PolyLine(
+            locations=[[lat_origen, lon_origen], [lat_destino, lon_destino]],
+            color=color_accion,
+            weight=4,
+            opacity=0.8,
+            popup=texto_linea
+        ).add_to(mapa)
+        
+        # Dibujar el nodo destino resaltado con el color de la acción que se hizo allí
+        folium.CircleMarker(
+            location=[lat_destino, lon_destino],
+            radius=6,
+            color='black', # Borde negro para distinguir los nodos visitados
+            weight=1,
+            fill=True,
+            fill_color=color_accion,
+            fill_opacity=0.9,
+            popup=f"Estación {destino_idx} (Visitada)<br>{accion.capitalize()} {cantidad} bicis"
+        ).add_to(mapa)
+
+    return mapa
+
+
+def dibujar_mapa_estado(coordenadas, caso_capacidad, inventario_final):
+    """
+    Genera la Mappa del Comparativo del Porcentaje de Llenado, sin Trayecto.
+    Azul (>50%), Rojo (<50%), Verde (50% exacto).
+    """
+    mapa = folium.Map(location=[43.4647, -3.8044], zoom_start=14)
+    
+    for i, coords in enumerate(coordenadas):
         lat, lon = coords['lat'], coords['lon']
         cap_max = caso_capacidad[i]
         bicis_actuales = inventario_final[i]
         porcentaje_llenado = (bicis_actuales / cap_max) * 100 if cap_max > 0 else 0
         
-        color_circulo = 'green'
-        radio = 5
+        color_circulo = 'green' # Punto Verde si están justos al 50%
+        radio = 5 # Tamaño base mínimo
         
-        if porcentaje_llenado > 50:
-            color_circulo = 'blue'
+        # La tolerancia para el 50% se ajusta a un margen estrecho debido a los decimales
+        if porcentaje_llenado > 51:
+            color_circulo = 'blue' # Azul % por encima de 50%
             diferencia = porcentaje_llenado - 50
-            radio = 5 + (diferencia * 0.2)
-        elif porcentaje_llenado < 50:
-            color_circulo = 'red'
+            radio = 5 + (diferencia * 0.3) # Multiplicador para hacer más visible la proporción
+        elif porcentaje_llenado < 49:
+            color_circulo = 'red' # Rojo % por debajo del 50%
             diferencia = 50 - porcentaje_llenado
-            radio = 5 + (diferencia * 0.2)
+            radio = 5 + (diferencia * 0.3)
             
         tooltip_texto = f"Estación {i}<br>Bicis: {bicis_actuales}/{cap_max} ({porcentaje_llenado:.1f}%)"
         
@@ -303,30 +353,6 @@ def dibujar_mapa(
             fill=True,
             fill_color=color_circulo,
             fill_opacity=0.7
-        ).add_to(mapa)
-
-    # Dibujar el Recorrido del Camión
-    for origen, destino, accion, cantidad in movimientos_mapa:
-        origen_idx = int(origen)
-        destino_idx = int(destino)
-        
-        lat_origen, lon_origen = coordenadas[origen_idx]['lat'], coordenadas[origen_idx]['lon']
-        lat_destino, lon_destino = coordenadas[destino_idx]['lat'], coordenadas[destino_idx]['lon']
-
-        color_linea = 'green'
-        if accion == 'coger':
-            color_linea = 'red'
-        elif accion == 'dejar':
-            color_linea = 'blue'
-            
-        texto_linea = f"De {origen} a {destino}<br>Acción: {accion} {cantidad} bicis"
-        
-        folium.PolyLine(
-            locations=[[lat_origen, lon_origen], [lat_destino, lon_destino]],
-            color=color_linea,
-            weight=3,
-            opacity=0.8,
-            popup=texto_linea
         ).add_to(mapa)
 
     return mapa

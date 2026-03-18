@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from utils import obtener_estaciones_a_visitar, graficar_historiales, FUNCIONES_OBJETIVO, fobj_ratio, cargar_coordenadas, evaluar_ruta, dibujar_mapa
+from utils import obtener_estaciones_a_visitar, graficar_historiales, FUNCIONES_OBJETIVO, fobj_ratio, cargar_coordenadas, evaluar_ruta, dibujar_mapa_estado, dibujar_mapa_trayecto
 from config import CASOS, SEMILLAS, TOLERANCIA
 from IPython.display import display
 
@@ -94,14 +94,22 @@ def ejecutar_experimento(
             coordenadas=coordenadas
         )
         
-        mapa_generado = dibujar_mapa(
+        mapa_trayecto = dibujar_mapa_trayecto(
             coordenadas=coordenadas,
-            caso_capacidad=capacidad,
-            inventario_final=evaluacion_final['inventario_final'],
             movimientos_mapa=evaluacion_final['movimientos_mapa']
         )
         
-        display(mapa_generado)
+        mapa_estado = dibujar_mapa_estado(
+            coordenadas=coordenadas,
+            caso_capacidad=capacidad,
+            inventario_final=evaluacion_final['inventario_final']
+        )
+        
+        print(f"\n>> Mapa 1: TRAYECTO DEL CAMIÓN (Mejor ruta para {nombre_caso})")
+        display(mapa_trayecto)
+        
+        print(f"\n>> Mapa 2: ESTADO FINAL DE LAS ESTACIONES ({nombre_caso})")
+        display(mapa_estado)
 
         semilla_str = str(mejor_res_absoluto['semilla']) if mejor_res_absoluto['semilla'] is not None else 'N/A'
         nombre_fobj_corta = mejor_res_absoluto['nombre_fobj'].replace('fobj_', '')[:10]
