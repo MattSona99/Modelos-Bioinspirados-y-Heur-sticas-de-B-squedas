@@ -163,7 +163,7 @@ def busqueda_local_mejor_vecino(
                 
                 kms_vec = res_vecino['kms_recorridos']
                 ent_vec = res_vecino['entropia']
-                fobj_vec = kms_vec / ent_vec if ent_vec > 0 else float('inf')
+                fobj_vec = funcion_objetivo(kms=kms_vec, entropia=ent_vec, **kwargs)
                 
                 # Quedarse con el mejor vecino del entorno
                 if fobj_vec < mejor_vecino_fobj:
@@ -448,7 +448,7 @@ def busqueda_enfriamiento_simulado(
         'semilla': semilla,
         'parametros_extra': info_parametros
     }
-    
+
 # -----------------------------
 # 6. Algoritmo de Búsqueda Tabú
 # -----------------------------
