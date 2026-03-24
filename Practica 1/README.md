@@ -58,17 +58,21 @@ La estructura de archivos de la práctica es la siguiente:
 
 ```text
 Practica 1/
-├── algorithms.py       # Lógica matemática y algoritmos
-├── config.py           # Variables globales y definición de casos
-├── coords.json         # Base de datos geoespacial (lat/lon)
-├── notebook.ipynb      # Cuaderno interactivo con análisis visual
-├── requirements.txt    # Dependencias de Python
-├── runner.py           # Script principal de ejecución por consola
-└── utils.py            # Librería de funciones auxiliares y gráficos
+├── Documents                # Documentación y análisis de la práctica
+|     ├── Instructions.pdf   # Guía y directivas originales
+|     └── Analysís.pdf       # Análisis de resultados
+├── algorithms.py            # Lógica matemática y algoritmos
+├── config.py                # Variables globales y definición de casos
+├── coords.json              # Base de datos geoespacial (lat/lon)
+├── notebook.ipynb           # Cuaderno interactivo con análisis visual
+├── requirements.txt         # Dependencias de Python
+├── runner.py                # Script principal de ejecución por consola
+└── utils.py                 # Librería de funciones auxiliares y gráficos
 ```
 
 El código fuente ha sido modularizado para separar la lógica algorítmica, la visualización y la configuración:
 
+* **`Documents`**: Carpeta que contiene la documentación oficial (`Instructions.pdf` con el guion de la práctica) y la memoria final redactada con el análisis exhaustivo de los resultados obtenidos (`Analysis.pdf`).
 * **`algorithms.py`**: Contiene la lógica matemática y estructural de las metaheurísticas exigidas (Búsqueda Aleatoria, Primer Mejor, Mejor Vecino, Enfriamiento Simulado y Búsqueda Tabú).
 * **`config.py`**: Define los 3 casos de prueba base (estado del inventario de bicicletas, capacidades máximas de las estaciones) y las variables globales del entorno.
 * **`runner.py`**: Script ejecutable por consola. Se encarga de lanzar los algoritmos secuencialmente, inyectar las semillas, recopilar los datos y calcular estadísticas globales de tiempo y esfuerzo computacional.
