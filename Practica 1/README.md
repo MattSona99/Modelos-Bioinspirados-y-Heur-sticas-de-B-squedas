@@ -60,7 +60,7 @@ La estructura de archivos de la práctica es la siguiente:
 Practica 1/
 ├── Documents                # Documentación y análisis de la práctica
 |     ├── Instructions.pdf   # Guía y directivas originales
-|     └── Analysís.pdf       # Análisis de resultados
+|     └── Análysis.pdf       # Análisis de resultados
 ├── algorithms.py            # Lógica matemática y algoritmos
 ├── config.py                # Variables globales y definición de casos
 ├── coords.json              # Base de datos geoespacial (lat/lon)
