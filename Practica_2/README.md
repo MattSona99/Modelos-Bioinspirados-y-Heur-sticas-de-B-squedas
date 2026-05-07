@@ -136,5 +136,3 @@ Tienes dos formas principales de visualizar los resultados:
    python runner.py
    ```
 2. La consola imprimirá los logs de progreso de GRASP, ILS y VNS sobre los 3 casos, los scores y las estadísticas de Caja Negra/Blanca.
-
-> ⏱️ Las ejecuciones completas de `runner.py` (3 casos × 5 semillas × 3 algoritmos + estudios comparativos) son **largas**. Para iteraciones rápidas durante el desarrollo, se recomienda trabajar celda a celda en el notebook.
