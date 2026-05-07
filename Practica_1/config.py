@@ -8,7 +8,7 @@ TOLERANCIA = 1 # Margen para considerar una estación "optima" y no visitarla
 SEMILLAS_P1 = [42, 123, 987, 555, 2024]
 
 # Seeds actualizadas (Práctica 2 — por indicación del profesor)
-SEMILLAS = [382941, 4192853, 27849102, 391048576, 1842910337]
+SEMILLAS_P2 = [382941, 4192853, 27849102, 391048576, 1842910337]
 
 # Datos de los Escenarios (Casos)
 CASOS = {

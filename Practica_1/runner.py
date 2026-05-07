@@ -10,7 +10,7 @@ if abspath not in sys.path:
 import numpy as np
 import time
 from Practica_1.utils import obtener_estaciones_a_visitar, graficar_historiales, FUNCIONES_OBJETIVO, fobj_ratio, cargar_coordenadas, evaluar_ruta, dibujar_mapa_estado, dibujar_mapa_trayecto
-from Practica_1.config import CASOS, SEMILLAS_P1, TOLERANCIA
+from Practica_1.config import CASOS, SEMILLAS_P1, SEMILLAS_P2, TOLERANCIA
 from IPython.display import display
 
 from Practica_1.algorithms import (
@@ -78,7 +78,7 @@ REGISTRY = {
 
 def ejecutar_experimento(
     id_algoritmo,
-    casos=CASOS, semillas=SEMILLAS_P1, tolerancia=TOLERANCIA,
+    casos=CASOS, semillas=SEMILLAS_P2, tolerancia=TOLERANCIA,
     maps=True,
     **kwargs
     ):

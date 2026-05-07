@@ -230,7 +230,7 @@ def graficar_boxplot_caja_negra(resultados_5_ejecuciones, nombre_caso):
 
 def calcular_tasa_overlap_hamming(rutas, n_posiciones_prefijo=5):
     """
-    Calcula la Tasa de Diversificación (Distancia de Hamming) en las fases tempranas [cite: 112-114].
+    Calcula la Tasa de Diversificación (Distancia de Hamming) en las fases tempranas.
     Compara las primeras 'n' posiciones de las 5 rutas generadas por las distintas semillas.
     """
     n_rutas = len(rutas)

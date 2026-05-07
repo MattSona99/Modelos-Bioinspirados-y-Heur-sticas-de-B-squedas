@@ -8,7 +8,7 @@ if abspath not in sys.path:
     sys.path.append(abspath)
 
 # Importaciones de la Práctica 1
-from Practica_1.config import CASOS, SEMILLAS, TOLERANCIA
+from Practica_1.config import CASOS, SEMILLAS_P2, TOLERANCIA
 from Practica_1.utils import obtener_estaciones_a_visitar, cargar_coordenadas, evaluar_ruta, fobj_ratio
 
 # Importaciones de la Práctica 2
@@ -58,7 +58,7 @@ def ejecutar_analisis_cajas(caso_nombre="Caso 1", mejor_fobj_conocido=25.4):
 
     print("Ejecutando algoritmos (5 semillas)...\n")
 
-    for sem in SEMILLAS:
+    for sem in SEMILLAS_P2:
         # Extraer FOBJ de GRASP
         res_g = busqueda_grasp(funcion_objetivo, est_base, coordenadas, bicis, capacidad, evaluar_ruta, sem)
         # Convertimos a Score Universal por si internamente usó suma_ponderada
@@ -102,7 +102,7 @@ def ejecutar_analisis_cajas(caso_nombre="Caso 1", mejor_fobj_conocido=25.4):
     print("\n[2.3] Estudio comparativo del tamaño de RCL en GRASP:")
     comparar_grasp_rcl(
         busqueda_grasp, funcion_objetivo, est_base, coordenadas,
-        bicis, capacidad, evaluar_ruta, SEMILLAS,
+        bicis, capacidad, evaluar_ruta, SEMILLAS_P2,
         rcl_values=(3, 4, 5)
     )
 
