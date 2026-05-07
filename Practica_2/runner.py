@@ -1,6 +1,5 @@
 import os
 import sys
-import numpy as np
 
 directorio_runner = os.path.dirname(__file__)
 abspath = os.path.abspath(os.path.join(directorio_runner, '..'))
@@ -24,20 +23,22 @@ from Practica_2.utils import (
 )
 
 def mostrar_tabla_practica(diccionario_resultados):
-    """Llama a la generación de la tabla HTML horizontal."""
+    """
+    Llama a la generación de la tabla HTML horizontal.
+    """
     generar_tabla_global(diccionario_resultados)
 
 def ejecutar_analisis_cajas(caso_nombre="Caso 1", mejor_fobj_conocido=25.4):
     """
-    Ejecuta internamente GRASP, ILS y VNS 5 veces para un caso específico.
-    Recopila los datos en bruto para generar el Boxplot, RPD y Distancia de Hamming
-    sin ensuciar el notebook.
+    Ejecuta las metaheurísticas GRASP, ILS y VNS en 5 ejecuciones independientes 
+    para un caso específico. Recopila los datos en bruto para la generación del 
+    Boxplot, RPD y Distancia de Hamming.
     """
     print(f"\n{'='*80}")
     print(f" INICIANDO ANÁLISIS AVANZADO DE CAJA NEGRA Y BLANCA ({caso_nombre})")
     print(f"{'='*80}")
     
-    # 1. Cargar datos del mapa
+    # Carga de datos geoespaciales y configuración del caso
     ruta_coords = os.path.join(abspath, 'Practica_1', 'coords.json')
     coordenadas = cargar_coordenadas(ruta_coords)
     
@@ -45,7 +46,7 @@ def ejecutar_analisis_cajas(caso_nombre="Caso 1", mejor_fobj_conocido=25.4):
     bicis, capacidad = datos['bicis'], datos['capacidad']
     est_base = obtener_estaciones_a_visitar(bicis, capacidad, TOLERANCIA)
     
-    # Variables para almacenar resultados en bruto de las 5 semillas
+    # Inicialización de estructuras para almacenar resultados en bruto
     resultados_fobj = {'GRASP': [], 'ILS': [], 'VNS': []}
     rutas_grasp = []
     rutas_ils = []
@@ -53,34 +54,34 @@ def ejecutar_analisis_cajas(caso_nombre="Caso 1", mejor_fobj_conocido=25.4):
     historiales_ils = []
     historiales_vns = []
 
-    # Usamos fobj_ratio (o la que consideres estándar) para la comparativa estadística
+    # Asignación de la función objetivo estándar para la comparativa estadística
     funcion_objetivo = fobj_ratio
 
     print("Ejecutando algoritmos (5 semillas)...\n")
 
     for sem in SEMILLAS_P2:
-        # Extraer FOBJ de GRASP
+        # Ejecución y extracción de métricas de GRASP
         res_g = busqueda_grasp(funcion_objetivo, est_base, coordenadas, bicis, capacidad, evaluar_ruta, sem)
-        # Convertimos a Score Universal por si internamente usó suma_ponderada
+        # Conversión a Score Universal para estandarizar la comparativa
         score_g = fobj_ratio(res_g['kms'], res_g['entropia'])
         resultados_fobj['GRASP'].append(score_g)
         rutas_grasp.append(res_g['ruta'])
 
-        # Extraer FOBJ de ILS
+        # Ejecución y extracción de métricas de ILS
         res_i = busqueda_ils(funcion_objetivo, est_base, coordenadas, bicis, capacidad, evaluar_ruta, sem)
         score_i = fobj_ratio(res_i['kms'], res_i['entropia'])
         resultados_fobj['ILS'].append(score_i)
         rutas_ils.append(res_i['ruta'])
         historiales_ils.append(res_i['historial'])
 
-        # Extraer FOBJ de VNS
+        # Ejecución y extracción de métricas de VNS
         res_v = busqueda_vns(funcion_objetivo, est_base, coordenadas, bicis, capacidad, evaluar_ruta, sem)
         score_v = fobj_ratio(res_v['kms'], res_v['entropia'])
         resultados_fobj['VNS'].append(score_v)
         rutas_vns.append(res_v['ruta'])
         historiales_vns.append(res_v['historial'])
 
-    # 2. Imprimir Métricas y Gráficas
+    # Generación de métricas de evaluación e impresión de resultados
     print("--- 1. MEDIDAS DE CAJA NEGRA ---")
     calcular_metricas_caja_negra(resultados_fobj, mejor_fobj_conocido)
     graficar_boxplot_caja_negra(resultados_fobj, caso_nombre)
