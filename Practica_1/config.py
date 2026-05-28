@@ -10,6 +10,12 @@ SEMILLAS_P1 = [42, 123, 987, 555, 2024]
 # Seeds actualizadas (Práctica 2 — por indicación del profesor)
 SEMILLAS_P2 = [382941, 4192853, 27849102, 391048576, 1842910337]
 
+# Parámetros por defecto de los Algoritmos Genéticos (Práctica 3)
+# Parametrizables vía kwargs en cada algoritmo.
+TAM_POBLACION = 30      # Tamaño de la población
+MAX_EVALUACIONES = 3000 # Presupuesto de evaluaciones por ejecución
+PROB_CRUCE = 0.90       # Probabilidad de cruce (OX); si no, mutación 2-opt
+
 # Datos de los Escenarios (Casos)
 CASOS = {
     "Caso 1": {

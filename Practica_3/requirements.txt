@@ -1,0 +1,4 @@
+matplotlib
+folium
+numpy
+ipython
