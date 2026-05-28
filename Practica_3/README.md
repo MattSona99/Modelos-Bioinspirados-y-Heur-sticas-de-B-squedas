@@ -36,7 +36,8 @@ A diferencia de la Práctica 1 (heurísticas constructivas y búsquedas locales/
 ```text
 Practica_3/
 ├── Documents
-│     └── Instructions.pdf          # Guion y directivas oficiales (Versión 2026, 1.0)
+│     ├── Instructions.pdf          # Guion y directivas oficiales (Versión 2026, 1.0)
+│     └── Analysis.pdf              # Informe final (resultados y análisis, LaTeX)
 ├── algorithms.py                   # AG Básico, CHC y Multimodal (Clearing)
 ├── notebook.ipynb                  # Cuaderno interactivo con tablas y análisis
 ├── requirements.txt                # Dependencias de Python

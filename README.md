@@ -20,7 +20,7 @@ A continuación se listan las prácticas desarrolladas durante el curso. Puedes 
   * Metaheurísticas Avanzadas: *Enfriamiento Simulado* (Esquema de Cauchy) y *Búsqueda Tabú* (con memoria a largo/corto plazo y reinicializaciones).
 * 🔗 **[Ir a la documentación y código de la Práctica 1](./Practica_1)**
 
-### [🚧 Práctica 2: Metaheurísticas Multi-arranque y Basadas en Entornos Variables](./Practica_2)
+### [✅ Práctica 2: Metaheurísticas Multi-arranque y Basadas en Entornos Variables](./Practica_2)
 * **Objetivo:** Implementar y comparar metaheurísticas avanzadas que extienden las búsquedas locales clásicas mediante mecanismos de diversificación (multi-arranque, perturbación, entornos variables), añadiendo además un análisis estadístico riguroso de Caja Blanca y Caja Negra (RPD, CV, Distancia de Hamming, profundidad de estancamiento).
 * **Problema a resolver:** El mismo problema de balanceo de la red de bicicletas de Santander, reutilizando la infraestructura de la Práctica 1 (`evaluar_ruta`, `fobj_ratio`, casos y semillas).
 * **Algoritmos Implementados:**
@@ -28,6 +28,15 @@ A continuación se listan las prácticas desarrolladas durante el curso. Puedes 
   * *ILS* (Iterated Local Search) — BL + *mutación fuerte* sobre sub-lista del récord absoluto.
   * *VNS* (Variable Neighborhood Search) — estructuras de entorno crecientes ($k=1..k_{max}$) con *shaking* y reset tras mejora.
 * 🔗 **[Ir a la documentación y código de la Práctica 2](./Practica_2)**
+
+### [✅ Práctica 3: Algoritmos Genéticos y Evolutivos Poblacionales](./Practica_3)
+* **Objetivo:** Diseñar, implementar y comparar algoritmos evolutivos de población (AG Básico, CHC y AG Multimodal con *Clearing*) frente a las líneas base *Greedy* y *Búsqueda Local Primer Mejor*, con un análisis estadístico de Caja Negra (CV, RPD) y Caja Blanca (convergencia/reinicios, dinámica de nichos, diversidad por arcos).
+* **Problema a resolver:** El mismo problema de balanceo de la red de bicicletas de Santander, reutilizando el motor de las Prácticas 1 y 2 (`evaluar_ruta`, `fobj_ratio`, `FUNCIONES_OBJETIVO`, casos y semillas).
+* **Algoritmos Implementados:**
+  * *AG Básico* — generacional con elitismo, selección por torneo, cruce OX circular y mutación 2-opt.
+  * *CHC* — prevención de incesto por **distancia de Hamming por arcos**, recombinación HUX adaptada a orden, reinicios cataclísmicos y supervivencia elitista sin mutación.
+  * *AG Multimodal (Clearing)* — mantenimiento de múltiples óptimos mediante nichos definidos por radio de Hamming por arcos.
+* 🔗 **[Ir a la documentación y código de la Práctica 3](./Practica_3)**
 
 ---
 
