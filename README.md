@@ -38,6 +38,16 @@ A continuación se listan las prácticas desarrolladas durante el curso. Puedes 
   * *AG Multimodal (Clearing)* — mantenimiento de múltiples óptimos mediante nichos definidos por radio de Hamming por arcos.
 * 🔗 **[Ir a la documentación y código de la Práctica 3](./Practica_3)**
 
+### [✅ Práctica 4: Algoritmos de Optimización Basados en Colonias de Hormigas (OCH)](./Practica_4)
+* **Objetivo:** Implementar y comparar los tres modelos clásicos de Optimización por Colonias de Hormigas (SH, SHE y SCH) frente a un *Greedy* aleatorizado de lista corta (tamaño 3), añadiendo análisis de convergencia, un estudio paramétrico (ρ, β) y una **animación interactiva** del rastro de feromona sobre el mapa de Santander.
+* **Problema a resolver:** Variante **TSP** del problema de Santander: se **elimina la restricción de capacidad del camión** y el objetivo se reduce a recorrer todas las estaciones en la mínima distancia posible (con capacidad ilimitada la entropía resulta constante por caso, por lo que el coste que guía a las hormigas es la distancia). Reutiliza el motor de la Práctica 1 (matriz de distancias, `evaluar_ruta`, `fobj_ratio`, casos y semillas).
+* **Algoritmos Implementados:**
+  * *SH (Sistema de Hormigas)* — regla de transición proporcional `τ^α·η^β`; tras evaporar (ρ), **todas** las hormigas depositan `1/C(S)`.
+  * *SHE (Sistema de Hormigas Elitista)* — SH + `e=5` hormigas elitistas que refuerzan los arcos del **mejor tour global** en cada iteración.
+  * *SCH (Sistema de Colonias de Hormigas / ACS)* — regla **pseudo-aleatoria** (`q0`), **actualización local** de feromona (`φ`) durante la construcción y **actualización global** sólo por la mejor hormiga.
+  * Línea base: *Greedy aleatorizado* — vecino más cercano estocástico sobre la lista corta de las 3 estaciones más próximas.
+* 🔗 **[Ir a la documentación y código de la Práctica 4](./Practica_4)**
+
 ---
 
 ## 🛠️ Tecnologías Utilizadas

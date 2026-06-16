@@ -38,7 +38,7 @@ Este directorio contiene la implementación de la **Práctica 4** (Actividad Aca
 Practica_4/
 ├── Documents
 │     ├── Instructions.pdf          # Guion oficial (AAD, Versión 2026, 1.0)
-│     └── Analysis.pdf              # Informe final (resultados y análisis) — a entregar
+│     └── Analysis.pdf              # Informe final (resultados y análisis)
 ├── algorithms.py                   # SH, SHE, SCH y Greedy aleatorizado
 ├── notebook.ipynb                  # Cuaderno interactivo con tablas, convergencia y mapas
 ├── requirements.txt                # Dependencias de Python
