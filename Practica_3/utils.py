@@ -167,6 +167,19 @@ def cruce_hux_orden(padre1, padre2):
         return hijo
 
     return _recombinar(padre1, padre2), _recombinar(padre2, padre1)
+    """
+    Esempio cruce_hux_orden:
+    P1: [1, 2, 3, 4, 5, 6]
+    P2: [6, 2, 4, 3, 5, 1]
+
+    1. Differenze: indici 0, 2, 3, 5 (totale 4).
+    2. Selezione: metà a caso (es. indici 0 e 2).
+    3. Trasposizioni su P1 (per creare Figlio 1):
+    - Indice 0: serve '6' (da P2). Si trova all'indice 5. Swap(0, 5) -> [6, 2, 3, 4, 5, 1]
+    - Indice 2: serve '4' (da P2). Si trova all'indice 3. Swap(2, 3) -> [6, 2, 4, 3, 5, 1]
+    
+    Figlio 1: [6, 2, 4, 3, 5, 1]
+    """
 
 # =============================================================================
 # MÉTRICA DE DIVERSIFICACIÓN ESTRUCTURAL (BASADA EN ARCOS)
